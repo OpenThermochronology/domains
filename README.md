@@ -1,2 +1,2 @@
 # domains
-code for 
+code for determining K-feldspar 40Ar/39Ar diffusion domain structure outlined and discussed in a series of paper including: [Lovera et al. (1989)](http://doi.org/10.1029/JB094iB12p17917), [Lovera et al. (1991)](http://doi.org/10.1029/90JB02217), [Lovera et al. (1997)](http://doi.org/10.1016/s0016-7037(97)00147-6), and [Lovera et al. (2002](https://doi.org/10.1016/S0016-7037(01)00846-8). A recent summary paper by [Harrison and Lovera (2014)](https://doi.org/10.1144/SP378.9) presents a long arc of the method.
