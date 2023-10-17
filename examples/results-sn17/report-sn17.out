@@ -1,0 +1,66 @@
+****** SAMPLE:       sn17 ******
+     Infinite-slab diffusion geometry
+  
+ *** Arrhenius regression results: ***
+    Using steps  9 to 15:
+    E = 48.11 ±  2.12 kcal/mol
+    Log10D/Ro^2 =   5.552 ± 0.557
+    Unweighted regression
+  
+  
+ *** Intermediate results, search for best domain distribution: ***
+    # domains = 10   Isteps =  7   nc =  0   chiq =     1.567    
+    # domains = 10   Isteps =  7   nc =  0   chiq =     1.567    
+    # domains = 10   Isteps =  7   nc =  0   chiq =     1.567    
+    # domains = 10   Isteps =  7   nc =  0   chiq =     1.567    
+    # domains = 10   Isteps =  7   nc =  0   chiq =     1.567    
+    # domains =  9   Isteps =  8   nc =  0   chiq =     1.567    
+    # domains =  9   Isteps =  8   nc =  0   chiq =     1.567    
+    # domains =  9   Isteps =  8   nc =  0   chiq =     1.567    
+    # domains =  9   Isteps =  8   nc =  0   chiq =     1.567    
+    # domains =  9   Isteps =  8   nc =  0   chiq =     1.567    
+    # domains =  8   Isteps =  7   nc =  0   chiq =     1.564    
+    # domains =  8   Isteps =  7   nc =  0   chiq =     1.564    
+    # domains =  8   Isteps =  7   nc =  0   chiq =     1.564    
+    # domains =  8   Isteps =  7   nc =  0   chiq =     1.564    
+    # domains =  8   Isteps =  7   nc =  0   chiq =     1.564    
+    # domains =  7   Isteps =  5   nc =  0   chiq =     1.765    
+    # domains =  7   Isteps =  5   nc =  0   chiq =     1.765    
+    # domains =  7   Isteps =  5   nc =  0   chiq =     1.765    
+    # domains =  7   Isteps =  5   nc =  0   chiq =     1.765    
+    # domains =  7   Isteps =  5   nc =  0   chiq =     1.765    
+    # domains =  6   Isteps = 19   nc =  0   chiq =     1.751    
+    # domains =  6   Isteps = 19   nc =  0   chiq =     1.751    
+    # domains =  6   Isteps = 19   nc =  0   chiq =     1.751    
+    # domains =  6   Isteps = 19   nc =  0   chiq =     1.751    
+    # domains =  6   Isteps = 19   nc =  0   chiq =     1.751    
+    # domains =  5   Isteps =  9   nc =  0   chiq =     4.034    
+    # domains =  5   Isteps =  9   nc =  0   chiq =     4.034    
+    # domains =  5   Isteps =  9   nc =  0   chiq =     4.034    
+    # domains =  5   Isteps =  9   nc =  0   chiq =     4.034    
+    # domains =  5   Isteps =  9   nc =  0   chiq =     4.034    
+    # domains =  4   Isteps =  9   nc =  0   chiq =     21.83    
+    # domains =  4   Isteps =  9   nc =  0   chiq =     21.83    
+    # domains =  4   Isteps =  9   nc =  0   chiq =     21.83    
+    # domains =  4   Isteps =  9   nc =  0   chiq =     21.83    
+    # domains =  4   Isteps =  9   nc =  0   chiq =     21.83    
+    # domains =  3   Isteps =  9   nc =  0   chiq =     181.8    
+    # domains =  3   Isteps =  9   nc =  0   chiq =     181.8    
+    # domains =  3   Isteps =  9   nc =  0   chiq =     181.8    
+    # domains =  3   Isteps =  9   nc =  0   chiq =     181.8    
+    # domains =  3   Isteps =  9   nc =  0   chiq =     181.8    
+  
+ Lowest chi-square:  1.564E+00
+  
+ ******** Domain Parameters for Arvert ********
+ -------------------------------------------------   ------------
+ Domain    Volume Frac.    Size(Rmax)     Size(Ro)   Tc(10C/m.y.)
+ -------------------------------------------------   ------------
+    1         0.0993         0.0008        0.2491        223.0
+    2         0.1318         0.0020        0.6241        241.6
+    3         0.1704         0.0038        1.1931        255.5
+    4         0.1545         0.0073        2.3193        270.7
+    5         0.1417         0.0162        5.1098        289.7
+    6         0.1363         0.0555       17.5463        322.3
+    7         0.0838         0.3292      104.1015        376.4
+    8         0.0821         1.0000      316.2278        415.3
