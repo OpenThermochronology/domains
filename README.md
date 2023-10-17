@@ -16,9 +16,9 @@ Peter Zeitler, Lehigh University, Bethlehem, PA USA
 
 Compile `domains` like this (you MUST do it this way, using the `fno-automatic` and the `fallow-argument-mismatch` flags):
 
-`gfortran domains-112_gmt5.f90 -o domainsM2 -fno-automatic -O2  -fallow-argument-mismatch -w; rm -f *.mod`
+`gfortran domains-113_gmt5.f90 -o domainsM2 -fno-automatic -O2  -fallow-argument-mismatch -w; rm -f *.mod`
 
-(substitute your local source file name for 'domains-112_gmt5.f90', and your preferred executable name for 'domainsM2').
+(substitute your local source file name for 'domains-113_gmt5.f90', and your preferred executable name for 'domainsM2').
 
 Using O2 optimization seems to work reliably.
 just 
@@ -57,37 +57,10 @@ For the plotting option to work, you need to have an installation of either gmt 
 
 `domains SAMPLENAME SIZEFILENAME PLOTFLAG`
 
----
-### INPUT FILE
-
-- Remember that your input file must be in UNIX file format. Data format:
-
-- number-of-modeled-steps (note: one less than total since we can't deal with f=1.000)
-
-temp(degC)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fractional loss&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time(minutes)
-&nbsp;&nbsp;&nbsp;*(as many lines as there are modeled heatings steps)*
-
-*It's up to you but a useful convention is to use `.size` as the file suffix for you input files.*
-
----
-### OUTPUT FILES
-
-*XXX will be replaced by samplename*
-| OUTPUT FILES  | UNIT | Description |
-| ------------- |:-------------:| ------------- |  
-| domains-XXX.in      | 14  | input file for Arvert inversion |
-| report-XXX.out      | 28  | summarizes model results |
-| ener-XXX.out      | 30  | Ea values determined during search for best value |
-| arr-model-XXX.dat      | 16  | model arrhenius data, for X-Y plotting |
-| logr-model-XXX.dat      | 16  | model logRRo data, for line plotting as spectrum |
-|  arr-observed-XXX.dat      | 18  | observed arrhenius data, for X-Y plotting |
-|  logr-observed-XXX.dat      | 18  | observed logRRo data, for line plotting as spectrum |
-| logr-XXX.dat      | 20  | observed logRRo data, as simple list for autocorrelation |
-| kinetics-XXX.pdf      | N/A  | plotted kinetic and logRRo data, plus run info |
 
 ---
 ### HELP AND EXAMPLES
 
-Consult the quick-start guide for an example of how to run `domains`. There is also an EXAMPLES directory including some sample input files and examples of the output.
+Consult the quick-start parts of the guide for an example of how to run `domains`. There is also an EXAMPLES directory including some sample input files and examples of the output.
 
 ---
