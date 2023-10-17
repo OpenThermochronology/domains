@@ -1,4 +1,3 @@
----
 ### CONTENTS
 
 This document, about the domains inverse code, serve three purposes.
@@ -6,7 +5,7 @@ This document, about the domains inverse code, serve three purposes.
 * A quick start guide that will help you run one of the sample input files (sn17.size)
 * A more detailed description of some code options
 * Some more detailed background about this code and how it relates to Oscar Lovera's original autoarr code.
-
+  
 Note: A good understanding of the MDD diffusion model is required for use of this code and associated notes.
 
 #### Sections
