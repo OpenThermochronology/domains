@@ -21,8 +21,8 @@ Compile `domains` like this (you MUST do it this way, using the `fno-automatic` 
 (substitute your local source file name for 'domains-113_gmt5.f90', and your preferred executable name for 'domainsM2').
 
 Using O2 optimization seems to work reliably.
-just 
-The two '-f...' flags are required to make this complex legacy code compile - newer compilers are more strict about F77
+
+The two '-f...' flags are required to make this complex legacy code compile: newer compilers are more strict about F77
 code that used to generate warnings. These now throw errors that block compilation, so the two flags are required to work around that.
 
 The second command (`rm...`) just cleans up a compile-time file that is not needed following compilation.
