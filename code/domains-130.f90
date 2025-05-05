@@ -1,12 +1,43 @@
-! program domains v 1.123 (9 January 2013) > (6 August 2013) > 13 August 2013; fixed (finished?) 12/24/2014
-! September 2023: small changes to gmt plotting code to better work with gmt 5+6; minor wording changes on input prompts.
+! program domains v 1.30 (based on 1.21)
+
+! 9 April 2025: v. 1.21  Patched odd bug found by Brenhin Keller --
+!   Some runs, especially those where modeling pushed into skunky data past Kspar breakdown,
+!   yielded domain.in files having incorrect Do/a2 values for each domain. This also manifested
+!   as the component domain trends on the Arrhenius plot being way off, shoved to the right.
+!   Generally the domains values were 1 to 3 units too large (too diffusive). Oddly, this only
+!   impacted occasional model runs (but not only those with obviously iffy modeling choices).
+! 	I have been unable to pinpoint what data or parameters are causing this.
+!
+!   I noticed that the calculated Tc values remain correct given the sample's reported Do/ao2 value 
+!   and reported sizes. What seemed to be failing were Lovera's ordj values calculated using the ord,
+!   xlog, and rpmax variables. Based on the correct Tc values, I used just the value of ord
+!   and the size values in the odd members of array a1() to get the needed info. Modest testing
+!   seems to show that all isnow  ok using this approach. Each of the changes are documented with
+!   this version's 1.30 number (see lines ~650 to 680 of this version). 
+
+!   The original code is too complex to follow easily but I suspect that some inversion issues
+! 	are impacting what becomes the rpmax variable. This appears to be part of the original
+!   code, not related to changes related to the Domains wrapper I added. CAVEAT EMPTOR!
+
+! April 13, 2025. I decided to simplify code operation by hard-coding a few options, and add this
+! 	to the above bug fix to create 1.30. The manual and an alert in this code will note that
+!	the min and max number of domains and regression-weighting options can be changed in code
+!	with a re-compile.
+!   
+!   I could have put everything into a text input file but that might be slower and less flexible
+! 	for routine operation compared to a few command-line inputs. This splits the difference.
+!
+!	I have a left in a check that compares the max domain size as previously calculated with
+!	the value obtained from the correct a1() array. I also added warnings to the console and report
+!   outputs to flag cases where the mismatch has happened.
 
 
+! ***********************************************************************************************
 ! PURPOSE: Determine kinetic and domain-distribution parameters for use in MDD diffusion modeling
-!          Version 1.11 and higher handles spherical diffusion geometry
+!          Versions 1.11 and higher handle spherical diffusion geometry
 
 ! USAGE: ./domains [SAMPLENAME] [SIZEFILENAME] [PLOTFLAG]
-!     [SAMPLENAME] is a string 10 or fewer characters (extra will be ignored)
+!     [SAMPLENAME] is a string of 10 or fewer characters (extra will be ignored)
 !       [PLOTFLAG] is an integer: 1 results in use of gmt plotting commands for display output
 !
 ! AUTHOR: Core routines and algorithm by Oscar Lovera at UCLA (his original autoarr program)
@@ -27,21 +58,20 @@
 !
 ! Compile domains like this (you MUST do it this way, using the 'fno-automatic' flag):
 !
-! gfortran domains-1.00beta.f90 -o domains -fno-automatic -O2
-!
-! (substitute your local source file name for domains-1.00beta.f90,
-! and your preferred executable name for domains). You MUST use the
-! -fno-automatic compiler flag (you did read this, right?). Using O2 optimization then seems to work reliably.
+! gfortran domains-130.f90 -o domains13 -fno-automatic -O2  -fallow-argument-mismatch -w; rm -f *.mod
+
+! (substitute your local source file name for 'domains-130.f90', and your preferred executable name for 'domains13').
+! You MUST use the -fno-automatic compiler flag (you did read this, right?). Using O2 optimization then seems to work reliably.
 ! 
 ! Depending on your gfortran vintage and how it's configured, domains may compile smoothly
-! or the compiler may throw a series of warnings. It's ok to ignore those warnings (though
-! worrying: I still haven't figured out how to remedy them).
+! or the compiler may throw a series of warnings. If you choose the flag -fallow-argument-mismatch
+! these should not appear.
+!
+! If you place the location of the binary in your PATH, you should be able to call the code directly from any directory.
 ! 
-! For Mac OS X, a good source for gcc and gfortran installer packages for Lion and Mountain Lion is (see top of page):
+! For Mac OS X, a good source for gcc and gfortran installer packages remains (see top of page):
 ! 
 ! http://hpc.sourceforge.net/
-! 
-! I'm not sure if the Lion package will run under OS X 10.6.
 ! 
 ! ***** INPUT FILE *****
 ! 
@@ -65,7 +95,7 @@
 ! and removes need for multiple copies.
 ! Also, you can now specify a size file having any name as long as it is in .size format
 !
-! 9 January 2013. Version 1.00. Things seem to be working, so removed the 'beta' status (everything is in beat anyway, eh?).
+! 9 January 2013. Version 1.00. Things seem to be working, so removed the 'beta' status (everything is in beta anyway, eh?).
 ! Added Tc10 calculation for each domain, and reported this into to output plot and also the report text file. Moved plots up
 ! on page to more comfortably fit on laptop screen. Changed Ro to ro in labels.
 !
@@ -85,25 +115,32 @@
 ! exception (that seems harmless (??): "Note: The following floating-point exceptions are signalling: IEEE_UNDERFLOW_FLAG IEEE_DENORMAL")
 ! Need to test if this is from domains code (probably) or gmt (less likely). Due to compiler version??
 !
-
-! Version 1.12 was an offshoot of 1.11 intended for use of analyzing 4He CRH release data.
+! Version 1.12 was a local offshoot of 1.11 intended for use of analyzing 4He CRH release data.
 
 ! Version 1.13 (September 2023) - Just changes to plotting. Used psconvert to create plotfile as pdf.
 ! Minor changes to wording a few input prompts.
+
+! Version 1.20 (September 2023) - Improved performance for gmt5/6, including plot in pdf form. Clarified wording for some inputs.
+! Add option to force activation energy through a selected point.
+
+! Version 1.30 (April 2025) - See above. Bug fix, small simplification to user interface.
 
 ! 
 ! ***********************************************************************
 
 ! $$$ *********** Main program *********** 
 
-! Someday someone should explictly declare each variable and axe the following line (without breaking things!)
+! Someday someone should explictly declare each variable and then axe the following line (without breaking things!)
 
 module global
 
-integer geometry
+integer geometry, option
 
 end module global
 
+! GENERAL WARNINGS for those new to dabbling in fortran. !. Beware the implicit typing of variable
+! by their first letter! And also, beware - there is a limit to line lengths for code. For me, this
+! is 132 characters beyond that you need to append an & and continue on the next line!!!!!
 
 program domains
 
@@ -135,7 +172,7 @@ program domains
 	integer auxna,guesscount,wopt
 	
 	tab1=char(09)
-	gmt = 0   ! give this a value; real value should supercede this from command line
+	gmt = 0   ! initialize this with a value; real value should supercede this from command line
 	geometry = 1  ! 0 = slab 1 = sphere -- give this a value; real value should supercede this from terminal input
 	
 ! get samplename and value of gmt option from commandline using gfortran intrinsic functions
@@ -176,7 +213,7 @@ program domains
 ! initialize some things	
 	pi = 3.141592654
 	R = 1.98588E-3
-	ee = dexp(1.d00)
+	ee = dexp(1.d00) ! I have no immediate idea why Oscar did this!!
 	f(0) = 0.
 	wf(0) = 0.
 	zi(0) = 0.
@@ -185,23 +222,25 @@ program domains
 !	acut = .60
 	dchmin = 0.01
 	ncons = 0
-	ndom = 10   ! program default for maximum number of domains
-	mdom = 3
+	ndom = 10   ! program default for maximum number of domains RECOMPILE TO CHANGE
+	mdom = 3    ! program default for minimum number of domains RECOMPILE TO CHANGE
 !	ndom = 15   ! program seems to work if this is as high as 20; but runs slower
 !	mdom = 3
-	wopt = 0  ! program default for weighting of observed data (no weighting)
+	wopt = 0  ! program default for weighting of observed data (no weighting, errors good) 
+				!  RECOMPILE TO CHANGE
+	iquality = 0 ! new to version 1.30  - flag that model ran ok - 1 means max domain issue, 2 means 30+ fitting attempts
 
 ! greet the user and demonstrate program's start	
 	write(*,*) ' '	
 	write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'	    
-	write(*,*) '                   PROGRAM domains 1.13'
+	write(*,*) '                   PROGRAM domains 1.30'
 	write(*,*) ' '
 	print *,'   Kinetic and domain parameters from Ar-Ar stpheating data'
 	print *,' '
 	print *,'            Original code autoarr by Oscar Lovera'
 	print *,'                 modified by Peter Zeitler'
 	print *,' '    
-	print *,'                Last updated August 2023'
+	print *,'                Last updated April 2025'
 	print *,'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
 	print *,' '
 
@@ -209,15 +248,15 @@ program domains
 	write (*,*) ' '
 
 	geometry = -1
-	do while ((geometry.lt.0).or.(geometery.gt.1))
-		write (*,'("Choose diffusion geometery (0 = slab, 1 = sphere): ")',advance='no')
+	do while ((geometry.lt.0).or.(geometry.gt.1))
+		write (*,'("Choose diffusion geometry (0 = slab, 1 = sphere): ")',advance='no')
 		read *,geometry
 	end do
 
 	write (*,'("")')
 
 	maxtemp = -100.
-	do while ((maxtemp.gt.1500).or.(maxtemp.lt.800.))
+	do while ((maxtemp.gt.2000).or.(maxtemp.lt.800.))
 		write (*,'("Enter upper temperature cut-off for modeling (˚C): ")',advance='no')
 		read *,maxtemp
 	end do
@@ -225,34 +264,12 @@ program domains
 	
 	write (*,'("")')
 
-! See if the user wants to customize a few parameters	
-	write (*,'(100a)',advance='no') 'To override defaults, enter "y". Otherwise type "n" to proceed: '
-	read *,yes
-	
-	if(yes.eq.'y') then 
-		print *,' '
-		print *, 'To use the default value for any specific parameter, enter 0 at the prompt'
-		print *,' '
-		wopt = -1
-		do while ((wopt.gt.1).or.(wopt.lt.0))
-			write (*,'("Enter weighting option for Arrhenius-plot regression: ")')
-			write (*,'("    0 - no weighting (uncertainties will be ok)")')
-			write (*,'("    1 - legacy weighting (by step size) (uncertainties will be shady): ")',advance='no')
-			read *,wopt
-		end do	
-		write (*,'("")')
-		write (*,'(100a)',advance='no') ' Maximum number of domains (<= 15) (Default is 10): '
-		read *, naux
-		if(naux.ne.0) ndom = naux
-		write (*,'(100a)',advance='no') ' Minimum number of domains (>= 3)  (Default is 3): '
-		read *, naux
-		if(naux.ne.0) mdom = naux
-		write (*,'("")')
-		write (*,'("To keep log10(R/Ro) fixed type 1, otherwise enter 0 ")')		
-		write (*,'(100a)',advance='no') '          You''ll be prompted to enter a value later: '
-		read *, ncons
-	endif
-	
+	write (*,'(100a)',advance='no') 'Enter maximum value for log(r/ro) (default=free (0)): '
+	read *,auxro
+	if (auxro.gt.0) then  ! need to retain and set this legacy flag for use deep in the bowels...
+		ncons = 1
+	end if
+
 	print *,' '
 	print *,'Data from input file - please check:'
 	print *,'----------------------------------------'
@@ -266,7 +283,7 @@ program domains
 
 ! We want to put results in a directory, which means we have to make it, 
 ! but Fortran can't tell if a directory exists. Because this code compiles under gfortran
-! and is intended for UNIX system, we can use a (non-portable) trick: we look for the '.' file
+! and is intended for UNIX systems, we can use a (non-portable) trick: we look for the '.' file
 ! that will be located in any directory that exists.
 
 ! Note that I decided that since individual result files would get overwritten anyway
@@ -323,62 +340,17 @@ program domains
 
 ! Calculate E,Do, observed Arrhenius and logRRo values.
 
-! Use diff() to get the observed kinetics parameters and calculated some needed information
+! Use diff() to get the observed kinetic parameters and calculated some needed information
 	call diff(ord,E,f39,telab,tilab,xlogr,xlogd,wf,ni,xro,eselect,steplo,stephi,samplename,dirpath,wopt,siglogd,sige)
-	
-!	if(yes.eq.'y')then
-	if(ncons.eq.1)then
-		write (*,'("")')
-		write (*,'(100a)',advance='no') ' Enter maximum value for log(r/ro) (default=free (0)): '
-		read *,auxro
-		if(auxro.ne.0)xro = auxro
-		print *,' '
-	endif
+
+! based on first call to diff and user preferences, modify xro to user preference if not flagged as free (0)
+	if(auxro.ne.0)xro = auxro
 
 	write (*,'(1X,A4,f7.3,A3,F6.3,A20,f6.3,A4,F5.3)'),'E = ',e,' ±  ',sige,'    Log10(D/Ro^2) = ',ord,' ±  ',siglogd
 	print *,' '
 	print *,'All the parameters are now set, so Oscar says relax...'	
 	print *,' '
-	
-!	write (28,'(A4,f8.4,A3,F7.4,A20,f7.4,A4,F6.4)'),'E = ',e,' ±  ',sige,'   Log10(D/Ro^2) = ',ord,' ±  ',siglogd
-
-! Report regressions results to report-XXX.out
-	write(28,'("****** SAMPLE: ",A10," ******")') TRIM(samplename)
-	if (geometry.eq.0) then
-		write (28,*) '    Infinite-slab diffusion geometry'
-	else
-		write (28,*) '    Spherical diffusion geometry'	
-	end if
-	write (28,*) ' '
-	write (28,*) '*** Arrhenius regression results: ***'
-	write(28,'("    Using steps ",I2," to ",I2,":")') steplo,stephi
-
-	if (wopt.eq.0) then
-		write(28,'("    E = ",F5.2," ± ",F5.2," kcal/mol")') e,sige	
-	else
-		write(28,'("    E = ",F5.2," error could not be calcuated")') e
-	end if
-
-	if (wopt.eq.0) then
-		write(28,'("    Log10D/Ro^2 = ",F7.3," ± ",F5.3)') ord,siglogd
-	else
-		write(28,'("    Log10D/Ro^2 ",F7.3," error could not be calcuated")') ord
-	end if		
-
-	select case (wopt)
-	case (0)
-		write(28,'("    Unweighted regression")')
-
-	case (1)
-		write(28,'("    Regression weighted by 1/(Fn - Fn-1).")')
-	case (2)
-		write(28,'("    Regression weighted by 1/logD.")')
-	end select
-
-	write (28,*) ' '
-	write (28,*) ' '
-	write (28,*) '*** Intermediate results, search for best domain distribution: ***'
-	
+		
 ! Readjust (lower) the number of steps for use in the inversion routines	
 ! for those steps that are likely to have been recorded after sample breakdown
 	nisample = ni
@@ -400,7 +372,7 @@ program domains
 	
 	if (mct.gt.30) then 
 		print *, 'Warning: More than 30 fitting attempts. Adjusting parameters and retrying...'
-
+		iquality = 2  ! flag that model struggled a bit
 		if (ncicle.gt.0) ncicle = 4
 		amax = 0.
 		mct = 0
@@ -456,7 +428,8 @@ program domains
 	
 	if(dchisq.ge.dchmin.and.kc.le.100.or.kc.lt.5) goto 38
 	
-84	write(28, '("    # domains = ",I2,"   Isteps = ",I2,"   nc = ",I2,"   chiq = ",G13.4)'),ndom,kc,nc,chisq
+!84	write(28, '("    # domains = ",I2,"   Isteps = ",I2,"   nc = ",I2,"   chiq = ",G13.4)'),ndom,kc,nc,chisq
+84	continue
 
 	goto 54
 
@@ -504,13 +477,68 @@ program domains
 
 ! Write a report about the run
 	write(14,'(I5)') ndom
-	write(28,*)' '
-	write(28,'(A19,2x,ES9.3)') ' Lowest chi-square: ',ckchisq
+! Report regressions results to report-XXX.out
+	write(28,'("****** SAMPLE: ",A10," ******")') TRIM(samplename)
+	if (geometry.eq.0) then
+		write (28,*) '    Infinite-slab diffusion geometry'
+	else
+		write (28,*) '    Spherical diffusion geometry'	
+	end if
+	if (auxro.eq.0) then
+		write (28,*) '    Maximum value for log(r/ro) free'	
+	else
+		write (28,'("     Maximum value for log(r/ro) fixed: ",F4.2)') auxro
+	end if
+	if (iquality.eq.1) then
+		write (28,*) '    Mismatch in rpmax and max domain size - results should still be ok'	
+	end if
+	if (iquality.eq.2) then
+		write (28,*) '    More than 30 fitting attempts - results should still be ok'	
+	end if
+	
+	write (28,*) ' '
+	write (28,*) '*** Arrhenius regression results: ***'
+	if (option.eq.3) then
+		write(28,'("    Using step: ",I2," (E forced through point)")') steplo
+	else
+		write(28,'("    Using steps ",I2," to ",I2,":")') steplo,stephi	
+	end if
+
+	if (wopt.eq.0) then
+		if (option.eq.3) then
+			write(28,'("    E = ",F5.2," forced - error could not be calculated")') e	
+		else
+			write(28,'("    E = ",F5.2," ± ",F5.2," kcal/mol")') e,sige		
+		end if
+	else
+		write(28,'("    E = ",F5.2," error could not be calculated (weightings)")') e
+	end if
+
+	if (wopt.eq.0) then
+		if (option.eq.3) then
+			write(28,'("    Log10D/Ro^2 ",F7.3)') ord	
+		else
+			write(28,'("    Log10D/Ro^2 = ",F7.3," ± ",F5.3)') ord,siglogd		
+		end if
+	else
+		write(28,'("    Log10D/Ro^2 ",F7.3," error could not be calculated (weightings)")') ord
+	end if		
+
+	select case (wopt)
+	case (0)
+		write(28,'("    Unweighted regression")')
+
+	case (1)
+		write(28,'("    Regression weighted by 1/(Fn - Fn-1).")')
+	case (2)
+		write(28,'("    Regression weighted by 1/logD.")')
+	end select
+
 	write(28,*)' '		
 	write(28,*)'******** Domain Parameters for Arvert ********'
-	write(28,*)'-------------------------------------------------   ------------'
-	write(28,'(1X,"Domain",4x,"Volume Frac.",4x,"Size(Rmax)",5x,"Size(Ro)",3x,"Tc(10C/m.y.)")')
-	write(28,*)'-------------------------------------------------   ------------'
+	write(28,*)'------------------------------------------------------------------------   ------------'
+	write(28,'(1X,"Domain",4x,"  E  ",4x,"Log10(Do/a2)",4X,"Vol. Frac.",4x,"Size(Ro)",5x,"Size(Rmax)",3x,"Tc(10C/m.y.)")')
+	write(28,*)'------------------------------------------------------------------------   ------------'
 	sumc = 0.
 
 ! Do most of the plotting here (with a bit of reporting-to-file embedded)
@@ -590,37 +618,64 @@ program domains
 
 ! the following loop does some output work and we also use it for some plotting
 ! NOTE: array a1() holds both volume and size values for domains (odd indices = size, even indices = volume fraction)
+	
+	write(*,*)' '
+	write(*,*)'******** CHECK rpmax = largest? ********'
+	write(*,'(15X,F6.2,2X,F6.2)')rpmax,a1(2*ndom-1)
+	if (abs(rpmax - a1(2*ndom-1)).ge.0.01) then
+		write(*,*)'     >>> WARNING: large-domain mismatch (reported results should be ok)'
+		iquality = 1  ! flag that non-fatal glitch has occurred
+	end if
+
 	do j = 1,na+1,2
 		write(14,'(F8.4)') e
 		ordj = xlog - 2.*dlog10(a1(j)/rpmax)
-		write(14,'(F8.4)') ordj
+! version 1.30 workaround aimed at domains.in bug and also plotting of single-domain lines
+!		write(14,'(F8.4)') ordj
+		write(14,'(F8.4)') ord - dlog10(a1(j)*a1(j))
 		write(14,'(F8.6)') a1(j+1)
-		write(28,'(1X,I4,7x,f8.4,6x,f9.4,5x,f9.4,8x,f5.1)')(j+1)/2,a1(j+1),a1(j)/rpmax,a1(j),tcten(j)-273.15		
+
+		write(28,'(1X,I4,5X,F7.3,6X,F7.4,6X,f8.4,4x,f9.4,5X,f9.4,8X,f5.1)')(j+1)/2,E,ord - dlog10(a1(j)*a1(j)), & 
+		a1(j+1),a1(j),a1(j)/a1(2*ndom-1),tcten(j)-273.15		
+
 		sumc = sumc + a1(j+1)
 		
 ! superimpose individual domain trends on arrhenius plot
 		if (gmt.eq.1) then
 			xpoint = 14.5
-			ypoint = 2.302585*ordj - E/10000./R*xpoint
+! version 1.30 workaround aimed at domains.in bug and also plotting of single-domain lines
+!			ypoint = 2.302585*(ordj) - E/10000./R*xpoint			
+			ypoint = 2.302585*(ord - dlog10(a1(j)*a1(j))) - E/10000./R*xpoint
 			if (ypoint.le.-25.0) then
 				ypoint = -24.9
-				xpoint = (2.302585*ordj - ypoint)/(E/10000./R)
+!				xpoint = (2.302585*ordj - ypoint)/(E/10000./R)
+! version 1.30 workaround aimed at domains.in bug and also plotting of single-domain lines
+!				xpoint = (2.302585*ordj - ypoint)/(E/10000./R)	
+				xpoint = (2.302585*(ord - dlog10(a1(j)*a1(j))) - ypoint)/(E/10000./R)				
 			end if
 			if (ypoint.ge.-5.0) then
 				ypoint = -5.1
-				xpoint = (2.302585*ordj - ypoint)/(E/10000./R)
+! version 1.30 workaround aimed at domains.in bug and also plotting of single-domain lines
+!				xpoint = (2.302585*(ordj) - ypoint)/(E/10000./R)
+				xpoint = (2.302585*(ord - dlog10(a1(j)*a1(j))) - ypoint)/(E/10000./R)
 			end if			
 			open(unit=99,file='line.scr',status='UNKNOWN')
 			write (99,*)xpoint,ypoint
-			xpoint = 6.0
-			ypoint = 2.302585*ordj - E/10000./R*xpoint
+			xpoint = 6.0	
+! version 1.30 workaround aimed at domains.in bug and also plotting of single-domain lines		
+!			ypoint = 2.302585*ordj - E/10000./R*xpoint
+			ypoint = 2.302585*(ord - dlog10(a1(j)*a1(j))) - E/10000./R*xpoint	
 			if (ypoint.le.-25.0) then
-				ypoint = -24.9
-				xpoint = (2.302585*ordj - ypoint)/(E/10000./R)
+				ypoint = -24.9			
+! version 1.30 workaround aimed at domains.in bug and also plotting of single-domain lines					
+!				xpoint = (2.302585*ordj - ypoint)/(E/10000./R)
+				xpoint = (2.302585*(ord - dlog10(a1(j)*a1(j))) - ypoint)/(E/10000./R)				
 			end if
 			if (ypoint.ge.-5.0) then
 				ypoint = -5.1
-				xpoint = (2.302585*ordj - ypoint)/(E/10000./R)
+! version 1.30 workaround aimed at domains.in bug and also plotting of single-domain lines	
+!				xpoint = (2.302585*ordj - ypoint)/(E/10000./R)
+				xpoint = (2.302585*(ord - dlog10(a1(j)*a1(j))) - ypoint)/(E/10000./R)
 			end if			
 			write (99,*)xpoint,ypoint
 			close(99)
@@ -640,7 +695,7 @@ program domains
 		systemstring = TRIM(stringfrag)//"  -Gblue -O -K -P  >> "//TRIM(dirpath)//"kinetics-"//TRIM(samplename)//".ps"
 		call system(TRIM(systemstring))	   
 
-	! Finally, overlay the Ro reference line
+	! Finally, overlay the Ro reference line; remember we are plotting in ln() space, not log10
 		xpoint1 = 14.5
 		xpoint2 = 7.5
 		ypoint1 = 2.302585*ord - E/10000./R*xpoint1
@@ -734,12 +789,20 @@ program domains
 		write(99,'("")')
 !		write(99,'("")')
 		
-		write(99,'("Using steps ",I2," to ",I2,":")') steplo,stephi
+		if (option.eq.3) then
+			write(99,'("Using step ",I2,":")') steplo
+		else
+			write(99,'("Using steps ",I2," to ",I2,":")') steplo,stephi		
+		end if
 		write(99,'("")')
 !		write(99,'("")')
 		
-		if (wopt.eq.0) then
-			write(99,'("E = ",F5.2," \261 ",F5.2," kcal/mol")') e,sige	
+		if (wopt.eq.0) then	
+			if (option.eq.3) then
+				write(99,'("E = ",F5.2," \261 no error - forced")') e
+			else
+				write(99,'("E = ",F5.2," \261 ",F5.2," kcal/mol")') e,sige		
+			end if			
 		else
 			write(99,'("E = ",F5.2," \261 error N/A")') e
 		end if
@@ -747,7 +810,11 @@ program domains
 		write(99,'("")')
 		
 		if (wopt.eq.0) then
-			write(99,'("Log@-10@-(D/r@-o@-@+2@+) = ",F7.3," \261 ",F5.3)') ord,siglogd
+			if (option.eq.3) then
+				write(99,'("Log@-10@-(D/r@-o@-@+2@+) = ",F7.3)') ord
+			else
+				write(99,'("Log@-10@-(D/r@-o@-@+2@+) = ",F7.3," \261 ",F5.3)') ord,siglogd	
+			end if	
 		else
 			write(99,'("Log@-10@-(D/r@-o@-@+2@+) = ",F7.3," \261 error N/A")') ord
 		end if		
@@ -776,6 +843,29 @@ program domains
 !			write(99,'("")')		
 		end select
 
+		if (auxro.eq.0) then
+				write(99,'("Maximum log(r/ro) free")')
+				write(99,'("")')
+		else
+				write(99,'("Maximum log(r/ro) fixed: ",F4.2)') xro  !was auxro, shouldn't matter
+				write(99,'("")')
+		end if
+
+		select case (iquality)
+		case (0)
+			write(99,'("No model-run issues")')
+!			write(99,'("")')
+			write(99,'("")')
+		case (1)
+			write(99,'("Mismatch in max domain size")')
+			write(99,'("")')
+!			write(99,'("")')
+		case (2)
+			write(99,'("More than 30 fitting attempts")')
+			write(99,'("")')
+!			write(99,'("")')	
+		end select		
+	
 		write(99,'("\040")')
 		write(99,'("")')
 !		write(99,'("")')
@@ -812,7 +902,7 @@ program domains
 		close(99)
 		
 	! Now draw the sample info (have to shift back in Y since we want text next to Arrhenius plot)
-		stringfrag = "gmt pstext text.scr -JX3.5i/2.75i -R5.0/15.0/-25.0/-5.0 -Yr+3.55i -M -F+f8+a0+jLT -N -O -K -P  >> "
+		stringfrag = "gmt pstext text.scr -JX3.5i/2.75i -R5.0/15.0/-25.0/-5.0 -Yr+3.67i -M -F+f8+a0+jLT -N -O -K -P  >> "
 		systemstring = TRIM(stringfrag)//TRIM(dirpath)//"kinetics-"//TRIM(samplename)//".ps"
 		call system(TRIM(systemstring))				
 	end if 
@@ -823,9 +913,10 @@ program domains
 	      
 	if (gmt.eq.1) then	    
 		
-	! Finally, overlay the chosen model's arrhenius data
+	! Finally, overlay the chosen model's arrhenius data. Had to re-nudge this with -Y since data table was moved from 3.55 to 3.67
+	! in previous plotting call.
 		filename = TRIM(dirpath)//"arr-model-"//TRIM(samplename)//".dat"	
-		stringfrag = "gmt psxy "//TRIM(filename)//" -A -JX3.5i/2.75i -R5.0/15.0/-25.0/-5.0 -Sa0.15i -W0.4p,black "
+		stringfrag = "gmt psxy "//TRIM(filename)//" -A -JX3.5i/2.75i -R5.0/15.0/-25.0/-5.0 -Yr-0.12i -Sa0.15i -W0.4p,black "
 		systemstring = TRIM(stringfrag)//" -Gorangered1 -O -K -P  >> "//TRIM(dirpath)//"kinetics-"//TRIM(samplename)//".ps"
 		call system(TRIM(systemstring))	
 		
@@ -853,7 +944,11 @@ program domains
 	
 	write(*,'("")')
 	
-	write(*,*) 'Model finished with no major worries.'
+	if (iquality.eq.0) then
+		write(*,*) 'Model finished with no worries!'
+	else
+		write(*,*) 'Model finished but with some struggles.'  ! lots of attempts, or large-domain mismatch
+	end if
 	write(*,'("")')
 	stop
 
@@ -994,7 +1089,7 @@ subroutine arr(f,tilab,telab,ni,e,ord,nisample,samplename,dirpath)
 
 	zx(1) = 0.
 	slop = E*dlog10(ee)/10000./R
-	write(*,*) 'model intercept slope',ord,slop
+!	write(*,*) 'model intercept slope',ord,slop
 	do k = 1,nisample
 		avt(k) = (f(k)+f(k-1))/2.*100.
 		dzx = dlog10((zx(k+1)-zx(k))/tilab(k))  ! removed times 4.... why times four?? need to track this done if it solves the problem
@@ -1023,7 +1118,7 @@ subroutine diff(ord,E,f,telab,tilab,xlogr,xlogd,wt,ni,xro,eselect,steplo,stephi,
 	
 	double precision imp,siglogd,sige
 	character tab1*9, eselect*1,samplename*10, filename*70, dirpath*50
-	integer option,steplo,stephi,wopt
+	integer steplo,stephi,wopt
 	
 	tab1 = char(09)
 
@@ -1062,7 +1157,12 @@ subroutine diff(ord,E,f,telab,tilab,xlogr,xlogd,wt,ni,xro,eselect,steplo,stephi,
 			end if
 		end select
 	end do
-	write(20,*)'geometry ',geometry	
+	if (geometry.eq.0) then
+		write(20,*)'GEOMETRY: slab'
+	else
+		write(20,*)'GEOMETRY: sphere'
+	end if
+	
 	sumwt = 0.
 	nix = ni
 	do k = 1,ni  !calculate observed arrhenius data and also prepare some weights for later fitting routines
@@ -1099,9 +1199,11 @@ subroutine diff(ord,E,f,telab,tilab,xlogr,xlogd,wt,ni,xro,eselect,steplo,stephi,
 		write (*,*) '   0 -- use the values chosen by this program'
 		write (*,*) '   1 -- specify a range of heating steps to regress'	
 		write (*,*) '   2 -- select from a table of values'
+		write (*,*) '   3 -- force a value of E through a point'
 		write (*,*) ' '		
-		write (*,'(20a)',advance='no') 'Enter option: '		
+		write (*,'(20a)',advance='no') ' Enter option: '
 		read *,option
+		write (*,*) ' '	
 	else
 		option = 0
 	end if
@@ -1115,7 +1217,6 @@ subroutine diff(ord,E,f,telab,tilab,xlogr,xlogd,wt,ni,xro,eselect,steplo,stephi,
 ! calculate and write out observed logR/Ro values (log 10)
 ! note how xlogr() is being reused here!
 
-write(*,*) 'intercept slope',ord,slop
 	xlogr(1) = (ord-slop*tinv(1)-xlogd(1))/2.
 	write(22,'(F7.4,A1,F8.4)')f(0),tab1,xlogr(1)
 	write(22,'(F7.4,A1,F8.4)')f(1),tab1,xlogr(1)
@@ -1170,18 +1271,38 @@ subroutine param(ni,tinv,xlogd,wt,e,ord,option,steplo,stephi,samplename,dirpath,
 	
 	tab1 = char(09)
 	filename = TRIM(dirpath)//"ener-"//TRIM(samplename)//".out"
-	open(unit=30,file=filename,status='unknown')
+!	open(unit=30,file=filename,status='unknown')
 	
 	ee = dlog10(dexp(1.d00))  !ln() to log10() factor
 	r = 1.98588E-3
 
 	select case (option)
+		case (3)   ! user forces E through a point
+			write (*,*) "You've chosen to force E through a point."
+			write (*,'("    Enter E (kcal): ")',advance='no')
+			read *,e
+			write (*,'("    Enter point: ")',advance='no')
+			read *,k
+			write (*,*) ' '
+			
+			sige = 0.000
+			slop = e / 10000. / r / 2.302585
+
+			ord = slop * tinv(k) + xlogd(k)
+			steplo = k
+			stephi = k
+			siglogd = 0.0000
+
+!			write(30,'(F7.3)') e
+!			write(30,'("User forced E through step: ",I3)') k
+			return	
+	
 		case (1)   ! user enters range to regress
 			write (*,*) "You've chosen to regress a single set of contiguous points."
 			write (*,*) ' '
-			write (*,'("Enter step number, start of regression interval: ")',advance='no')
+			write (*,'("    Enter step number, start of regression interval: ")',advance='no')
 			read *,kstart
-			write (*,'("                     end of regression interval: ")',advance='no')
+			write (*,'("                         end of regression interval: ")',advance='no')
 			read *,k			
 			write (*,*) ' '
 			call fit(tinv,xlogd,kstart,k,wt,mwt,a,b,siga,sigb,chi2,q)
@@ -1189,8 +1310,8 @@ subroutine param(ni,tinv,xlogd,wt,e,ord,option,steplo,stephi,samplename,dirpath,
 			sige = -sigb/b*e
 			ord = a
 			siglogd = siga
-			write(30,'(F7.3,A1,F7.3)') e,tab1,ord
-			write(30,'("User regressed steps: ",I3," to ",I3)') kstart,k
+!			write(30,'(F7.3,A1,F7.3)') e,tab1,ord
+!			write(30,'("User regressed steps: ",I3," to ",I3)') kstart,k
 			steplo = kstart
 			stephi = k
 			return
@@ -1200,7 +1321,7 @@ subroutine param(ni,tinv,xlogd,wt,e,ord,option,steplo,stephi,samplename,dirpath,
 
 			minsteps = -1
 			do while ((minsteps.gt.ni).or.(minsteps.lt.3))
-				write (*,'("Enter minimum steps for regression: ")',advance='no')
+				write (*,'("    Enter minimum steps for regression: ")',advance='no')
 				read *,minsteps
 			end do			
 			
@@ -1236,11 +1357,11 @@ subroutine param(ni,tinv,xlogd,wt,e,ord,option,steplo,stephi,samplename,dirpath,
 					esig(count) = sigb/b*eact(count)
 					logdsig(count) = siga
 !					a = a/ee
-					write(30,'(I2,A1,I2,A1,F7.3,A1,F6.3,A1,F7.3,A1,F6.3)')kstart,tab1,k,tab1,eact(count),tab1,-esig(count),tab1,&
-					a,tab1,logdsig(count)
+!					write(30,'(I2,A1,I2,A1,F7.3,A1,F6.3,A1,F7.3,A1,F6.3)')kstart,tab1,k,tab1,eact(count),tab1,-esig(count),tab1,&
+!					a,tab1,logdsig(count)
 				end do
 			end do
-			close(30)
+!			close(30)
 
 ! use bubble sort to sort data according to maximum E
 			do ii = 1,count-3

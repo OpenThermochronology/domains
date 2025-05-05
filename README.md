@@ -16,9 +16,9 @@ Peter Zeitler, Lehigh University, Bethlehem, PA USA
 
 Compile `domains` like this (you MUST do it this way, using the `fno-automatic` and the `fallow-argument-mismatch` flags):
 
-`gfortran domains-113_gmt5.f90 -o domainsM2 -fno-automatic -O2  -fallow-argument-mismatch -w; rm -f *.mod`
+`gfortran domains-130.f90 -o domainsM2 -fno-automatic -O2  -fallow-argument-mismatch -w; rm -f *.mod`
 
-(substitute your local source file name for 'domains-113_gmt5.f90', and your preferred executable name for 'domainsM2').
+(substitute your local source file name for 'domains-130.f90', and your preferred executable name for 'domainsM2').
 
 Using O2 optimization seems to work reliably.
 
